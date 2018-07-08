@@ -16,3 +16,5 @@ dim(ratingmat)
 ratingmat<- matrix(
   c(7,6,NA,1,1,6,7,3,2,NA,7,NA,3,2,1,4,4,1,3,2,5,3,1,3,3,4,4,NA,4,3),nrow = 5,byrow = F)
 
+
+files_to_check<-list.files("Sir's work finish evening", pattern = ".csv", full.names = T)
