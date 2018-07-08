@@ -117,6 +117,10 @@ error_function<- function(ratingmat=ratingmat, prediction_matrix = prediction_ma
   RMSE<-sqrt(mean(error^2, na.rm = T))
   return(list(MAE = MAE, RMSE = RMSE))
 }
+##############################
+##### MAE error function #####
+##############################
+
 
 
 uu_error_list = list()
@@ -128,6 +132,13 @@ ii_error_list = list()
 # adjust nearest_neighbours
 
 
+ratingmatNAomitted <- ratingmat%>%
+  as.vector()%>%
+  na.omit()%>%
+  as.factor()
+
+notNAindexes<- !is.na(ratingmat)
+
 types = c("cosine", "pearson")
 
 for(i in types){
@@ -136,11 +147,19 @@ for(i in types){
     sim_matrix<- sim_mat_func(ratingmat, itemItem, i,  F)
     prediction_matrix <- pred_matrix_func(nn = nearest_neigbours, similarityMatrix = sim_matrix, ratingMatrix = ratingmat, itemBased = itemItem)
     if(itemItem == T){
-      ii_error_list[[i]] = lapply(prediction_matrix, function(x){error_function(ratingmat = ratingmat, prediction_matrix = x)})
+      ii_error_list[[i]] = lapply(prediction_matrix, function(x){caret::confusionMatrix(x[notNAindexes]%>%
+                                                                                          rangeOptimize()%>%
+                                                                                          as.factor(),
+                                                                                        ratingmatNAomitted
+      )})
       print(i)
       print("itemItem")
     } else {
-      uu_error_list[[i]] = lapply(prediction_matrix, function(x){error_function(ratingmat = ratingmat, prediction_matrix = x)})
+      uu_error_list[[i]] = lapply(prediction_matrix, function(x){caret::confusionMatrix(x[notNAindexes]%>%
+                                                                                          rangeOptimize()%>%
+                                                                                          as.factor(),
+                                                                                        ratingmatNAomitted
+      )}) #lapply(prediction_matrix, function(x){error_function(ratingmat = ratingmat, prediction_matrix = x)})
       print(i)
       print("userUser")
     }
@@ -159,3 +178,11 @@ errordf_ii<- data.frame(Method = replicate(length(nearest_neigbours), types)%>%t
                         RMSE = (ii_error_list%>%unlist())[grepl("RMSE", x = {ii_error_list%>%unlist()%>%names()})],
                         row.names = NULL
 )
+
+
+rangeOptimize <- function(x){
+  x[x>=5] = 5
+  x[x<=1] = 1
+  x = round(x)
+  x
+}

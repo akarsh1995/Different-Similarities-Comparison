@@ -13,6 +13,6 @@ ratingmat<-ratingmat[,-1]%>%t
 dim(ratingmat)
 
 # dataset for testing algorithm
-ratingmat2<- matrix(
+ratingmat<- matrix(
   c(7,6,NA,1,1,6,7,3,2,NA,7,NA,3,2,1,4,4,1,3,2,5,3,1,3,3,4,4,NA,4,3),nrow = 5,byrow = F)
 
