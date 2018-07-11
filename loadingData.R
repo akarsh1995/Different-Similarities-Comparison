@@ -2,7 +2,7 @@ library(tidyr)
 library(dplyr)
 library(readr)
 library(proxy)
-
+library(foreach)
 ## task : paper on survey of neighbourhood (memory based) 
 ### Load user data from 100k movielens dataset
 u.data <- read.delim("ml-100k/u.data", header=FALSE, stringsAsFactors=FALSE)
@@ -15,6 +15,3 @@ dim(ratingmat)
 # dataset for testing algorithm
 ratingmat<- matrix(
   c(7,6,NA,1,1,6,7,3,2,NA,7,NA,3,2,1,4,4,1,3,2,5,3,1,3,3,4,4,NA,4,3),nrow = 5,byrow = F)
-
-
-files_to_check<-list.files("Sir's work finish evening", pattern = ".csv", full.names = T)

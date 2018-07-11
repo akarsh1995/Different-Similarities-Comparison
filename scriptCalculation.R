@@ -13,7 +13,7 @@ sim_mat_func <- function(ratingMatrix = ratingmat, itemBased = F, type_of_sim = 
 ######################################
 ##### prediction matrix function #####
 ######################################
-pred_matrix_func<- function(nn = c(2,3,4), similarityMatrix = sim_matrix, ratingMatrix = ratingmat, itemBased = itemItem){
+pred_matrix_func<- function(nn = c(5,10,20,30,50,70,100,150,200), similarityMatrix = sim_matrix, ratingMatrix = ratingmat, itemBased = itemItem){
   if(itemBased==T){
     ratingMatrix<- ratingMatrix%>%t()
   }
@@ -51,68 +51,37 @@ error_function<- function(ratingmat=ratingmat, prediction_matrix = prediction_ma
   RMSE<-sqrt(mean(error^2, na.rm = T))
   return(list(MAE = MAE, RMSE = RMSE))
 }
-##############################
-##### MAE error function #####
-##############################
 
-
-
-uu_error_list = list()
-ii_error_list = list()
-
-# pearson left 20 ,50,100
 
 # enter desired types from cosine, jaccard, adjcos, sigmpcc, mmd, msd, conspear
 # adjust nearest_neighbours
 
+types = c("cosine", "pearson")
 
-ratingmatNAomitted <- ratingmat%>%
-  as.vector()%>%
-  na.omit()%>%
-  as.factor()
+filename <- paste0("results ",timestamp(prefix = "", suffix = "",quiet = T),".csv")
+res<-file(filename)
+open(res, "wr")
 
-notNAindexes<- !is.na(ratingmat)
 
-types = c("cosine", "pearson", "adjcos", "weipear")
-
-for(i in types){
-  nearest_neigbours = c(3,5,10,20,50)
-  for(itemItem in c(T)){
-    sim_matrix<- sim_mat_func(ratingmat, itemItem, i,  F)
-    prediction_matrix <- pred_matrix_func(nn = nearest_neigbours, similarityMatrix = sim_matrix, ratingMatrix = ratingmat, itemBased = itemItem)
-    if(itemItem == T){
-      ii_error_list[[i]] = lapply(prediction_matrix, function(x){error_function(ratingmat = ratingmat, prediction_matrix = x)})
-      print(i)
-      print("itemItem")
-    } else {
-      # uu_error_list[[i]] = lapply(prediction_matrix, function(x){caret::confusionMatrix(x[notNAindexes]%>%
-      #                                                                                     rangeOptimize()%>%
-      #                                                                                     as.factor(),
-      #                                                                                   ratingmatNAomitted
-      # )}) #
-      print(i)
-      print("userUser")
+  for(i in types){
+    nearest_neigbours = c(5,10,20,30,50,70,100,150,200)
+    for(itemItem in c(T, F)){
+      sim_matrix<- sim_mat_func(ratingmat, itemItem, i)
+      prediction_matrix <- pred_matrix_func(nn = nearest_neigbours, similarityMatrix = sim_matrix, ratingMatrix = ratingmat, itemBased = itemItem)
+      df.list <- lapply(prediction_matrix, function(x){error_function(ratingmat = ratingmat, prediction_matrix = x)})%>%list()%>%`names<-`(i)
+      df <- lapply(df.list, bind_rows, .id = "nn")%>%
+        bind_rows(.id = "Method")
+      
+      if(itemItem == T){
+        df <- cbind(Approach = "IBCF", df)       # creating dataframe of item-item errors of specific similarity approach
+        cat(i, "IBCF-Approach completed\n")
+      } else {
+        df <- cbind(Approach = "UBCF", df)       # creating dataframe of item-item errors of specific similarity approach
+        
+        cat(i, "UBCF-Approach completed\n")
+      }
+      write_csv(df, res, col_names = F)
     }
+    if(i == types[length(types)]) close(res)
   }
-}
-
-# errordf_uu<- data.frame(Method = replicate(length(nearest_neigbours), types)%>%t()%>%as.vector(), 
-#                         NN = rep(nearest_neigbours, length(types)),
-#                         MAE = (uu_error_list%>%unlist())[grepl("MAE", x = {uu_error_list%>%unlist()%>%names()})],
-#                         RMSE = (uu_error_list%>%unlist())[grepl("RMSE", x = {uu_error_list%>%unlist()%>%names()})],
-#                         row.names = NULL
-# )
-errordf_ii<- data.frame(Method = replicate(length(nearest_neigbours), types)%>%t()%>%as.vector(), 
-                        NN = rep(nearest_neigbours, length(types)),
-                        MAE = (ii_error_list%>%unlist())[grepl("MAE", x = {ii_error_list%>%unlist()%>%names()})],
-                        RMSE = (ii_error_list%>%unlist())[grepl("RMSE", x = {ii_error_list%>%unlist()%>%names()})],
-                        row.names = NULL
-)
-
-
-rangeOptimize <- function(x){
-  x[x>=5] = 5
-  x[x<=1] = 1
-  x = round(x)
-  x
-}
+  
